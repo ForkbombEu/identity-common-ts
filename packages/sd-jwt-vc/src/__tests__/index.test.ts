@@ -6,7 +6,14 @@ import {
   StatusList,
   type StatusListJWTHeaderParameters,
 } from '@owf/token-status-list'
-import { type DisclosureFrame, type JwtPayload, JwtTimeClaimException, type Signer, type Verifier } from '@sd-jwt/core'
+import {
+  type DisclosureFrame,
+  type JwtPayload,
+  JwtTimeClaimException,
+  SDJWTException,
+  type Signer,
+  type Verifier,
+} from '@sd-jwt/core'
 import { SignJWT } from 'jose'
 import { describe, expect, test, vi } from 'vitest'
 import { SDJwtVcInstance } from '..'
@@ -190,6 +197,85 @@ describe('Revocation', () => {
     }
     await sdjwtWithValidator.verify(await sdjwtWithValidator.issue(expectedPayload))
     expect(statusValidator).toHaveBeenCalledWith(1, { uri: 'https://example.com/status-list', idx: 6 })
+  })
+
+  test('safeVerify reports a revoked credential as STATUS_INVALID', async () => {
+    const claims = {
+      firstname: 'John',
+      status: {
+        status_list: {
+          uri: 'https://example.com/status-list',
+          idx: 1,
+        },
+      },
+    }
+    const encodedSdjwt = await sdjwt.issue({ iat, iss, vct, ...claims })
+    const result = await sdjwt.safeVerify(encodedSdjwt)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.map((e) => e.code)).toEqual(['STATUS_INVALID'])
+    }
+  })
+
+  test('safeVerify uses the error code from a custom status validator', async () => {
+    const sdjwtWithValidator = new SDJwtVcInstance({
+      signer,
+      signAlg: 'EdDSA',
+      verifier,
+      hasher: digest,
+      hashAlg: 'sha-256',
+      saltGenerator: generateSalt,
+      statusListFetcher: () => Promise.resolve(statusListJWT),
+      statusVerifier: async (data: string, sig: string) =>
+        Crypto.verify(null, Buffer.from(data), statusListPublicKey, Buffer.from(sig, 'base64url')),
+      statusValidator: async (status: number) => {
+        if (status !== 0)
+          throw new SDJWTException('Credential has been revoked', { details: { status }, code: 'STATUS_INVALID' })
+      },
+    })
+    const claims = {
+      firstname: 'John',
+      status: {
+        status_list: {
+          uri: 'https://example.com/status-list',
+          idx: 1,
+        },
+      },
+    }
+    const encodedSdjwt = await sdjwtWithValidator.issue({ iat, iss, vct, ...claims })
+    const result = await sdjwtWithValidator.safeVerify(encodedSdjwt)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.map((e) => e.code)).toEqual(['STATUS_INVALID'])
+    }
+  })
+
+  test.each([
+    [new SDJWTException('Type metadata does not match', { code: 'INVALID_VCT' }), 'INVALID_VCT'],
+    [new Error('Type metadata could not be fetched'), 'VCT_VERIFICATION_FAILED'],
+  ])('safeVerify keeps the code of a failed type metadata check: %s', async (error, expectedCode) => {
+    const { signer, verifier } = createSignerVerifier()
+    const sdjwtWithVct = new SDJwtVcInstance({
+      signer,
+      signAlg: 'EdDSA',
+      verifier,
+      hasher: digest,
+      hashAlg: 'sha-256',
+      saltGenerator: generateSalt,
+      loadTypeMetadataFormat: true,
+      vctFetcher: async () => {
+        throw error
+      },
+    })
+    const encodedSdjwt = await sdjwtWithVct.issue({ iat, iss, vct, firstname: 'John' })
+    const result = await sdjwtWithVct.safeVerify(encodedSdjwt)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.map((e) => e.code)).toEqual([expectedCode])
+    }
   })
 
   test('Test with a revoked credential but status verification disabled', async () => {
