@@ -62,32 +62,22 @@ export interface Oauth2AuthorizationServerOptions {
    * Applied to the `nbf` and `exp` checks of client attestation and client attestation PoP JWTs, and to the
    * `iat` checks of DPoP proofs (which are only performed when `maxProofAgeSeconds` is provided).
    *
-   * A per-call `allowedSkewInSeconds` (client attestation) or `allowedClockSkewSeconds` (DPoP) takes precedence,
-   * including `0`.
+   * A per-call `allowedSkewInSeconds` in the client attestation or DPoP options takes precedence, including `0`.
    *
    * @default 0
    */
-  allowedClockSkewSeconds?: number
+  allowedSkewInSeconds?: number
 }
 
 export class Oauth2AuthorizationServer {
   public constructor(private options: Oauth2AuthorizationServerOptions) {}
 
-  private withDefaultClientAttestationSkew<T extends { allowedSkewInSeconds?: number }>(options: T | undefined) {
+  private withDefaultSkew<T extends { allowedSkewInSeconds?: number }>(options: T | undefined) {
     if (!options) return undefined
 
     return {
       ...options,
-      allowedSkewInSeconds: options.allowedSkewInSeconds ?? this.options.allowedClockSkewSeconds,
-    }
-  }
-
-  private withDefaultDpopClockSkew<T extends { allowedClockSkewSeconds?: number }>(options: T | undefined) {
-    if (!options) return undefined
-
-    return {
-      ...options,
-      allowedClockSkewSeconds: options.allowedClockSkewSeconds ?? this.options.allowedClockSkewSeconds,
+      allowedSkewInSeconds: options.allowedSkewInSeconds ?? this.options.allowedSkewInSeconds,
     }
   }
 
@@ -116,8 +106,8 @@ export class Oauth2AuthorizationServer {
     return verifyPreAuthorizedCodeAccessTokenRequest({
       ...options,
       callbacks: this.options.callbacks,
-      clientAttestation: this.withDefaultClientAttestationSkew(options.clientAttestation),
-      dpop: this.withDefaultDpopClockSkew(options.dpop),
+      clientAttestation: this.withDefaultSkew(options.clientAttestation),
+      dpop: this.withDefaultSkew(options.dpop),
     })
   }
 
@@ -127,8 +117,8 @@ export class Oauth2AuthorizationServer {
     return verifyAuthorizationCodeAccessTokenRequest({
       ...options,
       callbacks: this.options.callbacks,
-      clientAttestation: this.withDefaultClientAttestationSkew(options.clientAttestation),
-      dpop: this.withDefaultDpopClockSkew(options.dpop),
+      clientAttestation: this.withDefaultSkew(options.clientAttestation),
+      dpop: this.withDefaultSkew(options.dpop),
     })
   }
 
@@ -136,8 +126,8 @@ export class Oauth2AuthorizationServer {
     return verifyRefreshTokenAccessTokenRequest({
       ...options,
       callbacks: this.options.callbacks,
-      clientAttestation: this.withDefaultClientAttestationSkew(options.clientAttestation),
-      dpop: this.withDefaultDpopClockSkew(options.dpop),
+      clientAttestation: this.withDefaultSkew(options.clientAttestation),
+      dpop: this.withDefaultSkew(options.dpop),
     })
   }
 
@@ -220,8 +210,8 @@ export class Oauth2AuthorizationServer {
     return verifyPushedAuthorizationRequest({
       ...options,
       callbacks: this.options.callbacks,
-      clientAttestation: this.withDefaultClientAttestationSkew(options.clientAttestation),
-      dpop: this.withDefaultDpopClockSkew(options.dpop),
+      clientAttestation: this.withDefaultSkew(options.clientAttestation),
+      dpop: this.withDefaultSkew(options.dpop),
     })
   }
 
@@ -244,8 +234,8 @@ export class Oauth2AuthorizationServer {
     return verifyAuthorizationChallengeRequest({
       ...options,
       callbacks: this.options.callbacks,
-      clientAttestation: this.withDefaultClientAttestationSkew(options.clientAttestation),
-      dpop: this.withDefaultDpopClockSkew(options.dpop),
+      clientAttestation: this.withDefaultSkew(options.clientAttestation),
+      dpop: this.withDefaultSkew(options.dpop),
     })
   }
 
@@ -281,7 +271,7 @@ export class Oauth2AuthorizationServer {
     return verifyDpopJwt({
       ...options,
       callbacks: this.options.callbacks,
-      allowedClockSkewSeconds: options.allowedClockSkewSeconds ?? this.options.allowedClockSkewSeconds,
+      allowedSkewInSeconds: options.allowedSkewInSeconds ?? this.options.allowedSkewInSeconds,
     })
   }
 
@@ -289,7 +279,7 @@ export class Oauth2AuthorizationServer {
     return verifyClientAttestation({
       ...options,
       callbacks: this.options.callbacks,
-      allowedSkewInSeconds: options.allowedSkewInSeconds ?? this.options.allowedClockSkewSeconds,
+      allowedSkewInSeconds: options.allowedSkewInSeconds ?? this.options.allowedSkewInSeconds,
     })
   }
 }

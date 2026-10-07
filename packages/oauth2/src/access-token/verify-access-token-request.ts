@@ -505,7 +505,7 @@ async function verifyAccessTokenRequestDpop(
     expectedJwkThumbprint: options.expectedJwkThumbprint,
     expectedNonce: options.expectedNonce,
     maxProofAgeSeconds: options.maxProofAgeSeconds,
-    allowedClockSkewSeconds: options.allowedClockSkewSeconds,
+    allowedSkewInSeconds: options.allowedSkewInSeconds,
     assertJtiUniqueness: options.assertJtiUniqueness,
     now,
   })

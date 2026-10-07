@@ -184,13 +184,13 @@ describe('Client attestation clock skew', () => {
     const createAuthorizationServer = () =>
       new Oauth2AuthorizationServer({
         callbacks: { ...callbacks, signJwt },
-        allowedClockSkewSeconds: 5,
+        allowedSkewInSeconds: 5,
       })
 
     interface RequestVerificationOptions {
       request: RequestLike
       now: Date
-      dpop: { required: true; jwt: string; maxProofAgeSeconds: number; allowedClockSkewSeconds?: number }
+      dpop: { required: true; jwt: string; maxProofAgeSeconds: number; allowedSkewInSeconds?: number }
       clientAttestation: {
         required: true
         clientAttestationJwt: string
@@ -294,9 +294,9 @@ describe('Client attestation clock skew', () => {
 
       test('a per-call DPoP skew of 0 overrides the server default', async () => {
         const options = await createOptions()
-        await expect(
-          verify({ ...options, dpop: { ...options.dpop, allowedClockSkewSeconds: 0 } })
-        ).rejects.toMatchObject({ errorResponse: { error: 'invalid_dpop_proof' } })
+        await expect(verify({ ...options, dpop: { ...options.dpop, allowedSkewInSeconds: 0 } })).rejects.toMatchObject({
+          errorResponse: { error: 'invalid_dpop_proof' },
+        })
       })
 
       test('a per-call client attestation skew of 0 overrides the server default', async () => {
@@ -348,7 +348,7 @@ describe('Client attestation clock skew', () => {
       await expect(
         createAuthorizationServer().verifyDpopJwt({
           ...options,
-          allowedClockSkewSeconds: 0,
+          allowedSkewInSeconds: 0,
         })
       ).rejects.toMatchObject({ errorResponse: { error: 'invalid_dpop_proof' } })
     })
