@@ -141,7 +141,7 @@ export async function verifyPreAuthorizedCodeAccessTokenRequest(
   await verifyAccessTokenRequestPkce(options.pkce, options.accessTokenRequest, options.callbacks)
 
   const dpopResult = options.dpop
-    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks)
+    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks, options.now)
     : undefined
 
   const clientAttestationResult = options.clientAttestation
@@ -231,7 +231,7 @@ export async function verifyAuthorizationCodeAccessTokenRequest(
   await verifyAccessTokenRequestPkce(options.pkce, options.accessTokenRequest, options.callbacks)
 
   const dpopResult = options.dpop
-    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks)
+    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks, options.now)
     : undefined
 
   const clientAttestationResult = options.clientAttestation
@@ -295,7 +295,7 @@ export async function verifyRefreshTokenAccessTokenRequest(
   await verifyAccessTokenRequestPkce(options.pkce, options.accessTokenRequest, options.callbacks)
 
   const dpopResult = options.dpop
-    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks)
+    ? await verifyAccessTokenRequestDpop(options.dpop, options.request, options.callbacks, options.now)
     : undefined
 
   const clientAttestationResult = options.clientAttestation
@@ -485,7 +485,8 @@ async function assertConfirmationKeyMatchesDpopKey(
 async function verifyAccessTokenRequestDpop(
   options: VerifyAccessTokenRequestDpop,
   request: RequestLike,
-  callbacks: Pick<CallbackContext, 'verifyJwt' | 'hash'>
+  callbacks: Pick<CallbackContext, 'verifyJwt' | 'hash'>,
+  now?: Date
 ) {
   if (options.required && !options.jwt) {
     throw new Oauth2ServerErrorResponseError({
@@ -506,6 +507,7 @@ async function verifyAccessTokenRequestDpop(
     maxProofAgeSeconds: options.maxProofAgeSeconds,
     allowedClockSkewSeconds: options.allowedClockSkewSeconds,
     assertJtiUniqueness: options.assertJtiUniqueness,
+    now,
   })
 
   return {
